@@ -115,6 +115,7 @@ def show_prediction_ui(selected_columns):
     # Create entry boxes for each player and their inputs
     player_entries = []
     ban_entries = []
+
     for i in range(5):  # 5 players per team
         blue_player_number = i + 1
         red_player_number = i + 6  # Starting from row 6 for Red Team
@@ -122,7 +123,7 @@ def show_prediction_ui(selected_columns):
         # Blue team entries
         blue_player_entry = Entry(frame, width=15)
         blue_player_entry.grid(row=blue_player_number, column=0)
-        blue_player_entry.insert(0, f"Blue Player {blue_player_number}")
+        blue_player_entry.insert(i, f"{blue_players[i].get()}")
         player_entries.append(blue_player_entry)
 
         Label(frame, text=blue_team_name).grid(row=blue_player_number, column=1)
@@ -163,7 +164,7 @@ def show_prediction_ui(selected_columns):
         # Red team entries
         red_player_entry = Entry(frame, width=15)
         red_player_entry.grid(row=red_player_number, column=0)
-        red_player_entry.insert(0, f"Red Player {i + 1}")
+        red_player_entry.insert(i, f"{red_players[i].get()}")
         player_entries.append(red_player_entry)
 
         Label(frame, text=red_team_name).grid(row=red_player_number, column=1)
@@ -184,7 +185,7 @@ def show_prediction_ui(selected_columns):
         champion5_entry_red = Entry(frame, width=15)
         champion5_entry_red.grid(row=10, column=3)
         red_champions = [champion1_entry_red, champion2_entry_red, champion3_entry_red,
-                          champion4_entry_red, champion5_entry_red]
+                         champion4_entry_red, champion5_entry_red]
 
         # Bans for Red Team
         red_ban_entries = []
@@ -203,15 +204,16 @@ def show_prediction_ui(selected_columns):
 
     def predict():
         # Create a DataFrame to store input data
-        input_data = []
         for i in range(5):  # 5 players per team
             blue_player_data = {
-                'player': player_entries[(i * 2)].get(),
+                'player': player_entries[i * 2].get(),
                 'team': blue_team_name,
                 'position': blue_player_positions[i],
                 'champion': blue_champions[i].get(),
                 'side': 'Blue',
             }
+            blue_player_data['team'] = blue_team_name  # Set team name to Blue
+
             for ban_col in range(5):  # Only iterate over 5 bans
                 blue_player_data[f'ban{ban_col+1}'] = ban_entries[0][ban_col].get()
             for j, col in enumerate(selected_columns):
@@ -225,6 +227,8 @@ def show_prediction_ui(selected_columns):
                 'champion': red_champions[i].get(),
                 'side': 'Red',
             }
+            red_player_data['team'] = red_team_name  # Set team name to Red
+
             for ban_col in range(5):  # Only iterate over 5 bans
                 red_player_data[f'ban{ban_col+1}'] = ban_entries[1][ban_col].get()
             for j, col in enumerate(selected_columns):
@@ -276,12 +280,28 @@ def predict_and_display(input_df):
     predictions = model.predict(features_scaled)
     predicted_results = (predictions > 0.5).astype(int).flatten()
 
+    # Add predictions to the original data
+    input_df['predicted_result'] = predicted_results
+
+    # Decode team names for interpretation
+    input_df['team'] = label_encoders['team'].inverse_transform(input_df['team'])
+
+    # Calculate team winning percentages
+    team_winning_percentages = input_df.groupby('team')['predicted_result'].sum().apply(lambda x: (x / 5) * 100)
+    input_df['team_winning_percentage'] = input_df['team'].map(team_winning_percentages)
+
+    # Determine winning team using the original team names
+    winning_team = team_winning_percentages.idxmax()
+    winning_percentage = team_winning_percentages[winning_team]
+
     result_window = Toplevel(window)
     result_window.title("Prediction Results")
     center_window(result_window, 300, 200)
 
+    # Display results
     Label(result_window, text=f"Predicted Result: {'Win' if predicted_results[0] == 1 else 'Loss'}").pack()
-
+    Label(result_window, text=f"Winning Team: {winning_team}").pack()
+    Label(result_window, text=f"{winning_team} Winning Percentage: {winning_percentage:.2f}%").pack()
 
 window = Tk()
 window.title("League of Legends Predictor")
@@ -314,8 +334,9 @@ red_team_entry.place(x=776.0, y=100.0, width=204.0, height=22.0)
 canvas.create_text(292.0, 100.0, anchor="nw", text="Team Name:", fill="#FFFFFF", font=("Jockey One", 12))
 canvas.create_text(684.0, 100.0, anchor="nw", text="Team Name:", fill="#FFFFFF", font=("Jockey One", 12))
 
-player_roles = ['Top', 'Jungle', 'Mid', 'ADC', 'Support']
+input_data = []
 
+player_roles = ['Top', 'Jungle', 'Mid', 'ADC', 'Support']
 blue_players = []
 red_players = []
 red_champions = []
