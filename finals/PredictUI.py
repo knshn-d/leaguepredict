@@ -1,4 +1,7 @@
 import os
+
+from PIL._tkinter_finder import tk
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
@@ -10,13 +13,11 @@ import numpy as np
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from tensorflow.keras.models import load_model
 
+model_path = r"..\res\lstm_model.keras"
+model = load_model(model_path)
 
 OUTPUT_PATH = Path(__file__).parent
 IMAGE_PATH = Path(r"..\res\lol-logo.png")
-
-# Load the pre-trained model
-model_path = r"..\res\lstm_model.keras"
-model = load_model(model_path)
 
 # Define the columns to be used for input
 all_columns = [
@@ -128,11 +129,21 @@ def show_prediction_ui(selected_columns):
 
         position_entry_blue = Entry(frame, width=15)
         position_entry_blue.grid(row=blue_player_number, column=2)
-        position_entry_blue.insert(0, blue_player_positions[i])
+        position_entry_blue.insert(i, blue_player_positions[i])
 
         # Champion entry
-        champion_entry_blue = Entry(frame, width=15)
-        champion_entry_blue.grid(row=blue_player_number, column=3)
+        champion1_entry_blue = Entry(frame, width=15)
+        champion1_entry_blue.grid(row=1, column=3)
+        champion2_entry_blue = Entry(frame, width=15)
+        champion2_entry_blue.grid(row=2, column=3)
+        champion3_entry_blue = Entry(frame, width=15)
+        champion3_entry_blue.grid(row=3, column=3)
+        champion4_entry_blue = Entry(frame, width=15)
+        champion4_entry_blue.grid(row=4, column=3)
+        champion5_entry_blue = Entry(frame, width=15)
+        champion5_entry_blue.grid(row=5, column=3)
+        blue_champions = [champion1_entry_blue, champion2_entry_blue, champion3_entry_blue,
+                          champion4_entry_blue, champion5_entry_blue]
 
         # Bans for Blue Team
         blue_ban_entries = []
@@ -159,11 +170,21 @@ def show_prediction_ui(selected_columns):
 
         position_entry_red = Entry(frame, width=15)
         position_entry_red.grid(row=red_player_number, column=2)
-        position_entry_red.insert(0, red_player_positions[i])
+        position_entry_red.insert(i, red_player_positions[i])
 
         # Champion entry
-        champion_entry_red = Entry(frame, width=15)
-        champion_entry_red.grid(row=red_player_number, column=3)
+        champion1_entry_red = Entry(frame, width=15)
+        champion1_entry_red.grid(row=6, column=3)
+        champion2_entry_red = Entry(frame, width=15)
+        champion2_entry_red.grid(row=7, column=3)
+        champion3_entry_red = Entry(frame, width=15)
+        champion3_entry_red.grid(row=8, column=3)
+        champion4_entry_red = Entry(frame, width=15)
+        champion4_entry_red.grid(row=9, column=3)
+        champion5_entry_red = Entry(frame, width=15)
+        champion5_entry_red.grid(row=10, column=3)
+        red_champions = [champion1_entry_red, champion2_entry_red, champion3_entry_red,
+                          champion4_entry_red, champion5_entry_red]
 
         # Bans for Red Team
         red_ban_entries = []
@@ -185,25 +206,27 @@ def show_prediction_ui(selected_columns):
         input_data = []
         for i in range(5):  # 5 players per team
             blue_player_data = {
-                'Player': player_entries[i].get(),
-                'Team': blue_team_name,
-                'Position': position_entry_blue.get(),
-                'Champion': champion_entry_blue.get(),
+                'player': player_entries[(i * 2)].get(),
+                'team': blue_team_name,
+                'position': blue_player_positions[i],
+                'champion': blue_champions[i].get(),
+                'side': 'Blue',
             }
             for ban_col in range(5):  # Only iterate over 5 bans
-                blue_player_data[f'Ban {ban_col+1}'] = ban_entries[0][ban_col].get()
+                blue_player_data[f'ban{ban_col+1}'] = ban_entries[0][ban_col].get()
             for j, col in enumerate(selected_columns):
                 blue_player_data[col] = col_entries_blue[j].get()
             input_data.append(blue_player_data)
 
             red_player_data = {
-                'Player': player_entries[i + 5].get(),
-                'Team': red_team_name,
-                'Position': position_entry_red.get(),
-                'Champion': champion_entry_red.get(),
+                'player': player_entries[(i * 2) + 1].get(),
+                'team': red_team_name,
+                'position': red_player_positions[i],
+                'champion': red_champions[i].get(),
+                'side': 'Red',
             }
             for ban_col in range(5):  # Only iterate over 5 bans
-                red_player_data[f'Ban {ban_col+1}'] = ban_entries[1][ban_col].get()
+                red_player_data[f'ban{ban_col+1}'] = ban_entries[1][ban_col].get()
             for j, col in enumerate(selected_columns):
                 red_player_data[col] = col_entries_red[j].get()
             input_data.append(red_player_data)
@@ -211,7 +234,8 @@ def show_prediction_ui(selected_columns):
         input_df = pd.DataFrame(input_data)
 
         # Ensure columns are numeric where needed
-        numeric_columns = input_df.columns.difference(['Player', 'Team', 'Position', 'Champion'])
+        numeric_columns = input_df.columns.difference(['side', 'player', 'team', 'position', 'champion', 'ban1', 'ban2',
+                                                       'ban3', 'ban4', 'ban5'])
         input_df[numeric_columns] = input_df[numeric_columns].apply(pd.to_numeric, errors='coerce')
         input_df = input_df.fillna(0)  # Replace NaNs with 0 for numeric columns
 
@@ -233,6 +257,17 @@ def predict_and_display(input_df):
     # Scaling features
     scaler = StandardScaler()
     features_scaled = scaler.fit_transform(input_df)
+
+    # Check and adjust the number of features to match the model's input shape
+    expected_num_features = model.input_shape[2]
+    current_num_features = features_scaled.shape[1]
+
+    if current_num_features > expected_num_features:
+        features_scaled = features_scaled[:, :expected_num_features]
+    elif current_num_features < expected_num_features:
+        # Add zero columns if there are fewer features than expected
+        features_scaled = np.pad(features_scaled, ((0, 0), (0, expected_num_features - current_num_features)),
+                                 'constant')
 
     # Reshape for LSTM [samples, time steps, features]
     features_scaled = np.reshape(features_scaled, (features_scaled.shape[0], 1, features_scaled.shape[1]))
@@ -283,6 +318,8 @@ player_roles = ['Top', 'Jungle', 'Mid', 'ADC', 'Support']
 
 blue_players = []
 red_players = []
+red_champions = []
+blue_champions = []
 
 for i, role in enumerate(player_roles):
     Label(window, text=f"{role}:", bg="#1B2641", fg="#FFFFFF", font=("Jockey One", 12)).place(x=292, y=176 + (i * 30))
