@@ -299,7 +299,6 @@ def predict_and_display(input_df):
     center_window(result_window, 300, 200)
 
     # Display results
-    Label(result_window, text=f"Predicted Result: {'Win' if predicted_results[0] == 1 else 'Loss'}").pack()
     Label(result_window, text=f"Winning Team: {winning_team}").pack()
     Label(result_window, text=f"{winning_team} Winning Percentage: {winning_percentage:.2f}%").pack()
 
