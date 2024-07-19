@@ -150,9 +150,8 @@ def show_prediction_ui(selected_columns):
         blue_ban_entries = []
         for ban_col in range(5):
             ban_entry_blue = Entry(frame, width=15)
-            ban_entry_blue.grid(row=blue_player_number, column=4 + ban_col)
+            ban_entry_blue.grid(row=1, column=4 + ban_col)
             blue_ban_entries.append(ban_entry_blue)
-        ban_entries.append(blue_ban_entries)
 
         # Additional entries based on selected columns
         col_entries_blue = []
@@ -191,7 +190,7 @@ def show_prediction_ui(selected_columns):
         red_ban_entries = []
         for ban_col in range(5):
             ban_entry_red = Entry(frame, width=15)
-            ban_entry_red.grid(row=red_player_number, column=4 + ban_col)
+            ban_entry_red.grid(row=6, column=4 + ban_col)
             red_ban_entries.append(ban_entry_red)
         ban_entries.append(red_ban_entries)
 
@@ -312,9 +311,11 @@ canvas.place(x=0, y=0)
 
 canvas.create_rectangle(0.0, 0.0, 255.0, 500.0, fill="#091428", outline="")
 
-predict_button = Button(window, text="Predict", command=open_predict_ui, font=("Jockey One", 20), bg="#091428",
-                        fg="#C89B3C", bd=0, highlightthickness=0)
-predict_button.place(x=80, y=265, anchor="nw")
+border_frame = Frame(window, bg="#091428", highlightthickness=2, highlightbackground="#C89B3C")
+border_frame.place(x=80, y=265, anchor="nw")
+
+predict_button = Button(border_frame, text="Predict", command=open_predict_ui, font=("Jockey One", 20), bg="#091428", fg="#C89B3C", bd=0)
+predict_button.pack()
 
 # Load and resize the logo image
 original_image = Image.open(IMAGE_PATH)
