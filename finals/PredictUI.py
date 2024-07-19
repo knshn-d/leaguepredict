@@ -243,6 +243,7 @@ def show_prediction_ui(selected_columns):
         input_df = input_df.fillna(0)  # Replace NaNs with 0 for numeric columns
 
         predict_and_display(input_df)
+        input_data.clear()
 
     # Button to predict
     Button(top, text="Predict", command=predict).pack(pady=10)
